@@ -6,20 +6,26 @@ require("dotenv").config(); // Load environment variables
 
 const app = express();
 
-// Determine if running in production (Google Cloud Run) or locally
+// ✅ Force use of CLOUD_DATABASE_URL when in production (Google Cloud Run)
 const isProduction = process.env.NODE_ENV === "production";
-const connectionString = isProduction ? process.env.CLOUD_DATABASE_URL : process.env.DATABASE_URL;
+const connectionString = isProduction
+  ? process.env.CLOUD_DATABASE_URL
+  : process.env.DATABASE_URL;
 
+// ✅ Explicitly print environment details for debugging
+console.log("⚡ NODE_ENV:", process.env.NODE_ENV);
+console.log("🔗 CLOUD_DATABASE_URL:", process.env.CLOUD_DATABASE_URL ? "[SET]" : "[NOT SET]");
+console.log("🔗 DATABASE_URL:", process.env.DATABASE_URL ? "[SET]" : "[NOT SET]");
 console.log("⚡ Database Connection Mode:", isProduction ? "Google Cloud SQL" : "Local PostgreSQL");
-console.log("🔗 Connection String (Sanitized):", connectionString.replace(/:\/\/.*@/, "://[REDACTED]@"));
+console.log("🔗 Using Connection String:", connectionString.replace(/:\/\/.*@/, "://[REDACTED]@"));
 
-// Configure PostgreSQL Pool
+// ✅ Configure PostgreSQL Pool (Cloud Run requires SSL)
 const pool = new Pool({
   connectionString,
-  ssl: isProduction ? { rejectUnauthorized: false } : false, // Enable SSL only for Cloud Run
+  ssl: isProduction ? { rejectUnauthorized: false } : false, // Cloud SQL needs SSL
 });
 
-// Function to test database connection with retries
+// ✅ Function to test database connection with retries
 async function testDatabaseConnection(retries = 5) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -38,21 +44,19 @@ async function testDatabaseConnection(retries = 5) {
     }
   }
 }
+testDatabaseConnection(); // Run on startup
 
-// Start database connection test
-testDatabaseConnection();
-
-// Middleware
+// ✅ Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.use(express.static(path.join(__dirname, "public")));
 
-// Routes
+// ✅ Routes
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/about", (req, res) => res.sendFile(path.join(__dirname, "public", "about.html")));
 app.get("/contact", (req, res) => res.render("contact", { name: "Guest" }));
 
-// Handle Contact Form Submission
+// ✅ Handle Contact Form Submission
 app.post("/submit-form", async (req, res) => {
   const { name, email, message } = req.body;
   try {
@@ -68,7 +72,7 @@ app.post("/submit-form", async (req, res) => {
   }
 });
 
-// Admin Panel Route
+// ✅ Admin Panel Route (View Contact Submissions)
 app.get("/admin", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM contacts ORDER BY created_at DESC");
@@ -80,12 +84,12 @@ app.get("/admin", async (req, res) => {
   }
 });
 
-// Global Error Handler
+// ✅ Global Error Handler (Prevents Server Crash)
 app.use((err, req, res, next) => {
   console.error("🚨 Unexpected Error:", err.message);
   res.status(500).send("Something went wrong. Check server logs for details.");
 });
 
-// Start Server (Cloud Run requires PORT 8080)
+// ✅ Start Server (Cloud Run requires PORT 8080)
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
