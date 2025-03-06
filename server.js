@@ -6,23 +6,20 @@ require("dotenv").config(); // Load environment variables
 
 const app = express();
 
-// ✅ Force use of CLOUD_DATABASE_URL when in production (Google Cloud Run)
+// ✅ Force Cloud SQL public IP when in production
 const isProduction = process.env.NODE_ENV === "production";
 const connectionString = isProduction
-  ? process.env.CLOUD_DATABASE_URL
+  ? `postgres://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.DB_PUBLIC_IP}:${process.env.PGPORT}/${process.env.PGDATABASE}`
   : process.env.DATABASE_URL;
 
-// ✅ Explicitly print environment details for debugging
 console.log("⚡ NODE_ENV:", process.env.NODE_ENV);
-console.log("🔗 CLOUD_DATABASE_URL:", process.env.CLOUD_DATABASE_URL ? "[SET]" : "[NOT SET]");
-console.log("🔗 DATABASE_URL:", process.env.DATABASE_URL ? "[SET]" : "[NOT SET]");
-console.log("⚡ Database Connection Mode:", isProduction ? "Google Cloud SQL" : "Local PostgreSQL");
+console.log("🔗 Database Connection Mode:", isProduction ? "Google Cloud SQL (Public IP)" : "Local PostgreSQL");
 console.log("🔗 Using Connection String:", connectionString.replace(/:\/\/.*@/, "://[REDACTED]@"));
 
-// ✅ Configure PostgreSQL Pool (Cloud Run requires SSL)
+// ✅ Configure PostgreSQL Pool
 const pool = new Pool({
   connectionString,
-  ssl: isProduction ? { rejectUnauthorized: false } : false, // Cloud SQL needs SSL
+  ssl: isProduction ? { rejectUnauthorized: false } : false, // Enable SSL for Cloud SQL
 });
 
 // ✅ Function to test database connection with retries
