@@ -10,14 +10,15 @@ const app = express();
 const isProduction = process.env.NODE_ENV === "production";
 
 // ✅ Configure PostgreSQL Connection (Ensure SSL is properly handled)
-const dbConfig = {
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  database: process.env.PGDATABASE,
-  host: process.env.DB_PUBLIC_IP,  // ⬅️ Use Public IP instead of PGHOST
-  port: process.env.PGPORT || 5432,
-  ssl: false,  // ⬅️ Ensure SSL is disabled
-};
+  const dbConfig = {
+    user: process.env.PGUSER,
+    password: process.env.PGPASSWORD,
+    database: process.env.PGDATABASE,
+    host: process.env.PGHOST || `/cloudsql/geocode-02282024:us-west3:node-postgres`,  // 🔥 Ensure Cloud Run uses Cloud SQL Proxy
+    port: process.env.PGPORT || 5432,
+    ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false },
+  };
+  
 
 console.log("⚡ Database Connection Mode:", isProduction ? "Google Cloud SQL" : "Local PostgreSQL");
 console.log("🔗 Database Host:", dbConfig.host);
