@@ -14,9 +14,9 @@ const dbConfig = {
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
   database: process.env.PGDATABASE,
-  host: process.env.PGHOST || process.env.DB_PUBLIC_IP,
+  host: process.env.DB_PUBLIC_IP,  // ⬅️ Use Public IP instead of PGHOST
   port: process.env.PGPORT || 5432,
-  ssl: isProduction ? { require: true, rejectUnauthorized: false } : false, // 🔥 Enforce SSL only in production
+  ssl: false,  // ⬅️ Ensure SSL is disabled
 };
 
 console.log("⚡ Database Connection Mode:", isProduction ? "Google Cloud SQL" : "Local PostgreSQL");
