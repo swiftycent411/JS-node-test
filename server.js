@@ -9,18 +9,15 @@ const app = express();
 // ✅ Determine if running in production (Cloud Run) or local development
 const isProduction = process.env.NODE_ENV === "production";
 
-// ✅ Configure PostgreSQL Connection (Disable SSL for Cloud SQL)
+// ✅ Configure PostgreSQL Connection (Ensure SSL is properly handled)
 const dbConfig = {
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
   database: process.env.PGDATABASE,
   host: process.env.PGHOST || process.env.DB_PUBLIC_IP,
   port: process.env.PGPORT || 5432,
-  ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false }, // 🔥 Ensure SSL is disabled
+  ssl: isProduction ? { require: true, rejectUnauthorized: false } : false, // 🔥 Enforce SSL only in production
 };
-
-console.log("⚡ Database Connection Mode:", isProduction ? "Google Cloud SQL" : "Local PostgreSQL");
-console.log("🔗 Database Host:", dbConfig.host);
 
 console.log("⚡ Database Connection Mode:", isProduction ? "Google Cloud SQL" : "Local PostgreSQL");
 console.log("🔗 Database Host:", dbConfig.host);
