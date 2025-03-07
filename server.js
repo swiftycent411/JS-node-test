@@ -2,47 +2,33 @@ const express = require("express");
 const path = require("path");
 const bodyParser = require("body-parser");
 const { Pool } = require("pg");
-require("dotenv").config(); // Load environment variables
 
 const app = express();
 
-// ✅ Determine if running in production (Cloud Run) or local development
-const isProduction = process.env.NODE_ENV === "production";
+// ✅ Configure PostgreSQL Connection (No .env file)
+const dbConfig = {
+  user: process.env.PGUSER || "default_user",
+  password: process.env.PGPASSWORD || "default_password",
+  database: process.env.PGDATABASE || "default_db",
+  host: process.env.PGHOST || `/cloudsql/geocode-02282024:us-west3:node-postgres`,
+  port: process.env.PGPORT || 5432,
+  ssl: false,  // ✅ Explicitly disable SSL for Cloud SQL
+};
 
-// ✅ Configure PostgreSQL Connection (Ensure SSL is properly handled)
-  const dbConfig = {
-    user: process.env.PGUSER,
-    password: process.env.PGPASSWORD,
-    database: process.env.PGDATABASE,
-    host: process.env.PGHOST || `/cloudsql/geocode-02282024:us-west3:node-postgres`,  // 🔥 Ensure Cloud Run uses Cloud SQL Proxy
-    port: process.env.PGPORT || 5432,
-    ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false },
-  };
-  
-
-console.log("⚡ Database Connection Mode:", isProduction ? "Google Cloud SQL" : "Local PostgreSQL");
+console.log("⚡ Database Connection Mode:", process.env.NODE_ENV);
 console.log("🔗 Database Host:", dbConfig.host);
 
 // ✅ Initialize PostgreSQL Pool
 const pool = new Pool(dbConfig);
 
-// ✅ Function to test database connection with retries
-async function testDatabaseConnection(retries = 5) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      console.log(`🔄 Attempting DB Connection (${attempt}/${retries})...`);
-      const result = await pool.query("SELECT VERSION()");
-      console.log("✅ Connected to PostgreSQL:", result.rows[0].version);
-      return;
-    } catch (err) {
-      console.error(`❌ Database connection failed: ${err.message}`);
-      if (attempt < retries) {
-        console.log(`🔁 Retrying in 5 seconds...`);
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-      } else {
-        console.error("🚨 All retries failed. Database connection could not be established.");
-      }
-    }
+// ✅ Function to test database connection
+async function testDatabaseConnection() {
+  try {
+    console.log("🔄 Testing DB Connection...");
+    const result = await pool.query("SELECT VERSION()");
+    console.log("✅ Connected to PostgreSQL:", result.rows[0].version);
+  } catch (err) {
+    console.error("❌ Database connection failed:", err.message);
   }
 }
 testDatabaseConnection(); // Run on startup
@@ -73,7 +59,7 @@ app.post("/submit-form", async (req, res) => {
   }
 });
 
-// ✅ Admin Panel Route (View Contact Submissions)
+// ✅ Admin Panel Route
 app.get("/admin", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM contacts ORDER BY created_at DESC");
@@ -85,7 +71,7 @@ app.get("/admin", async (req, res) => {
   }
 });
 
-// ✅ Global Error Handler (Prevents Server Crash)
+// ✅ Global Error Handler
 app.use((err, req, res, next) => {
   console.error("🚨 Unexpected Error:", err.message);
   res.status(500).send("Something went wrong. Check server logs for details.");
