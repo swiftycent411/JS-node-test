@@ -37,7 +37,9 @@ function writeData(data) {
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/about", (req, res) => res.sendFile(path.join(__dirname, "public", "about.html")));
 app.get("/contact", (req, res) => res.render("contact", { name: "Guest" }));
-
+app.get("/resume", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "resume.html"));
+});
 // ✅ Handle Contact Form Submission (Save to Local File)
 app.post("/submit-form", (req, res) => {
   const { name, email, message } = req.body;

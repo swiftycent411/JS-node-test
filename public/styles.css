@@ -9,9 +9,19 @@ body {
 
 /* Header Styles */
 header {
-    background-color: #0073e6;
+    display: flex;
+    align-items: center;
+    background-color: #222;
+    padding: 10px;
     color: white;
-    padding: 15px 0;
+}
+
+.profile-img {
+    width: 80px;  /* Adjust size as needed */
+    height: 80px;
+    border-radius: 50%;  /* Makes the image circular */
+    margin-right: 15px;  /* Spacing between image and title */
+    border: 3px solid white;
 }
 
 header h1 a {
