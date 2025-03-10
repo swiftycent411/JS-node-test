@@ -1,5 +1,5 @@
-# Use the official Node.js image
-FROM node:18
+# Use a lightweight Node.js image
+FROM node:18-alpine
 
 # Set working directory
 WORKDIR /usr/src/app
@@ -7,8 +7,8 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies in production mode
+RUN npm ci --only=production
 
 # Copy all project files
 COPY . .
@@ -16,5 +16,8 @@ COPY . .
 # Expose port 8080 for Cloud Run
 EXPOSE 8080
 
-# Set the command to start the app
+# Set environment variable for Cloud Run
+ENV PORT=8080
+
+# Start the app
 CMD ["node", "server.js"]
