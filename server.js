@@ -2,8 +2,16 @@ const express = require("express");
 const path = require("path");
 const bodyParser = require("body-parser");
 const fs = require("fs");
+const axios = require("axios");
+require("dotenv").config(); // Load environment variables
 
 const app = express();
+//auth
+const API_USERNAME = process.env.API_USERNAME;
+const API_PASSWORD = process.env.API_PASSWORD;
+const API_ENDPOINT = process.env.API_ENDPOINT;
+const SURVEY_CODE = process.env.SURVEY_CODE;
+const NOTIFICATION_EMAILS = process.env.NOTIFICATION_EMAILS;
 
 // ✅ Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -33,42 +41,79 @@ function writeData(data) {
   }
 }
 
-// ✅ Routes
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-app.get("/about", (req, res) => res.sendFile(path.join(__dirname, "public", "about.html")));
-app.get("/contact", (req, res) => res.render("contact", { name: "Guest" }));
-app.get("/resume", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "resume.html"));
-});
-// ✅ Handle Contact Form Submission (Save to Local File)
-app.post("/submit-form", (req, res) => {
+// ✅ Function to Get API Token
+async function getAuthToken() {
+  try {
+    const url = ${process.env.API_ENDPOINT}/Authenticate?username=${encodeURIComponent(process.env.API_USERNAME)}&password=${encodeURIComponent(process.env.API_PASSWORD)};
+    const response = await axios.post(url, {}, { headers: { "Content-Type": "application/json" } });
+    return response.data.replace(/\"/g, ""); // Remove wrapping quotes
+  } catch (error) {
+    console.error("❌ Error getting API token:", error.message);
+    return null;
+  }
+}
+
+// ✅ Function to Push Data to API
+async function pushDataToAPI(submission) {
+  try {
+    const authToken = await getAuthToken();
+    if (!authToken) {
+      console.error("🚨 No Auth Token: Aborting API request.");
+      return;
+    }
+
+    const payload = {
+      surveyCode: process.env.SURVEY_CODE,
+      sendAlerts: false,
+      name: "Contact Form Submission",
+      notificationEmails: process.env.NOTIFICATION_EMAILS,
+      UniqueRequestKey: "UniqueKey-" + new Date().toISOString(),
+      Respondents: [
+        {
+          CompletedDate: new Date().toISOString(),
+          StartedDate: new Date().toISOString(),
+          Language: "en",
+          Responses: submission,
+        },
+      ],
+    };
+
+    const response = await axios.post(${process.env.API_ENDPOINT}/importRequest, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        "authentication-Token": authToken,
+      },
+    });
+
+    console.log("✅ API Response:", response.data);
+  } catch (error) {
+    console.error("❌ Error sending data:", error.response ? error.response.data : error.message);
+  }
+}
+
+// ✅ Handle Contact Form Submission
+app.post("/submit-form", async (req, res) => {
   const { name, email, message } = req.body;
-  
-  // Read existing data and append new submission
   const submissions = readData();
   const newEntry = { id: submissions.length + 1, name, email, message, createdAt: new Date() };
+
   submissions.push(newEntry);
-  
-  // Write to local file
   writeData(submissions);
-  
+
   console.log("✅ Form Submission Saved:", newEntry);
+
+  // ✅ Push to API
+  await pushDataToAPI(newEntry);
+
   res.render("thank-you", { name });
 });
 
-// ✅ Admin Panel Route (Read from Local File)
+// ✅ Admin Panel Route
 app.get("/admin", (req, res) => {
   const submissions = readData();
-  console.log("📊 Retrieved", submissions.length, "submissions.");
   res.render("admin", { contacts: submissions });
 });
 
-// ✅ Global Error Handler
-app.use((err, req, res, next) => {
-  console.error("🚨 Unexpected Error:", err.message);
-  res.status(500).send("Something went wrong. Check server logs for details.");
-});
-
-// ✅ Start Server (Default Port 8080)
+// ✅ Start Server
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(🚀 Server running on port ${PORT}));
