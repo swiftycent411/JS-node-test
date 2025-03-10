@@ -92,6 +92,15 @@ async function pushDataToAPI(submission) {
   }
 }
 
+// ✅ Home Route
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+
+// ✅ Contact Page Route
+app.get("/contact", (req, res) => res.render("contact", { name: "Guest" }));
+
+// ✅ Resume Page Route
+app.get("/resume", (req, res) => res.sendFile(path.join(__dirname, "public", "resume.html")));
+
 // ✅ Handle Contact Form Submission
 app.post("/submit-form", async (req, res) => {
   const { name, email, message } = req.body;
