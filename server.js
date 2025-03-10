@@ -65,7 +65,7 @@ async function pushDataToAPI(submission) {
 
     const payload = {
       surveyCode: SURVEY_CODE,
-      sendAlerts: false,
+      sendAlerts: true,
       name: "Contact Form Submission",
       notificationEmails: NOTIFICATION_EMAILS,
       UniqueRequestKey: `UniqueKey-${new Date().toISOString()}`,
