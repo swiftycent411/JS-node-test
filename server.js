@@ -6,7 +6,8 @@ const axios = require("axios");
 require("dotenv").config(); // Load environment variables
 
 const app = express();
-//auth
+
+// ✅ Load Environment Variables
 const API_USERNAME = process.env.API_USERNAME;
 const API_PASSWORD = process.env.API_PASSWORD;
 const API_ENDPOINT = process.env.API_ENDPOINT;
@@ -44,7 +45,7 @@ function writeData(data) {
 // ✅ Function to Get API Token
 async function getAuthToken() {
   try {
-    const url = `${process.env.API_ENDPOINT}/Authenticate?username=${encodeURIComponent(process.env.API_USERNAME)}&password=${encodeURIComponent(process.env.API_PASSWORD)}`;
+    const url = `${API_ENDPOINT}/Authenticate?username=${encodeURIComponent(API_USERNAME)}&password=${encodeURIComponent(API_PASSWORD)}`;
     const response = await axios.post(url, {}, { headers: { "Content-Type": "application/json" } });
     return response.data.replace(/\"/g, ""); // Remove wrapping quotes
   } catch (error) {
@@ -63,11 +64,11 @@ async function pushDataToAPI(submission) {
     }
 
     const payload = {
-      surveyCode: process.env.SURVEY_CODE,
+      surveyCode: SURVEY_CODE,
       sendAlerts: false,
       name: "Contact Form Submission",
-      notificationEmails: process.env.NOTIFICATION_EMAILS,
-      UniqueRequestKey: "UniqueKey-" + new Date().toISOString(),
+      notificationEmails: NOTIFICATION_EMAILS,
+      UniqueRequestKey: `UniqueKey-${new Date().toISOString()}`,
       Respondents: [
         {
           CompletedDate: new Date().toISOString(),
@@ -78,7 +79,7 @@ async function pushDataToAPI(submission) {
       ],
     };
 
-    const response = await axios.post(${process.env.API_ENDPOINT}/importRequest, payload, {
+    const response = await axios.post(`${API_ENDPOINT}/importRequest`, payload, {
       headers: {
         "Content-Type": "application/json",
         "authentication-Token": authToken,
@@ -116,4 +117,4 @@ app.get("/admin", (req, res) => {
 
 // ✅ Start Server
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(🚀 Server running on port ${PORT}));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
