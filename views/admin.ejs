@@ -4,34 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel</title>
-    <link rel="stylesheet" href="/styles.css"> <!-- Link to existing CSS -->
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <h1>Admin Panel - Contact Submissions</h1>
-    
-    <table border="1">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Message</th>
-                <th>Submitted At</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% contacts.forEach(contact => { %>
-                <tr>
-                    <td><%= contact.id %></td>
-                    <td><%= contact.name %></td>
-                    <td><%= contact.email %></td>
-                    <td><%= contact.message %></td>
-                    <td><%= contact.created_at %></td>
-                </tr>
-            <% }); %>
-        </tbody>
-    </table>
+    <header>
+        <h1><a href="/">Home</a></h1>
+        <nav>
+            <ul>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="/admin">Admin</a></li>
+            </ul>
+        </nav>
+    </header>
 
-    <a href="/">Back to Home</a>
+    <main>
+        <h2>Admin Panel</h2>
+        <p>Here are the submitted contact forms:</p>
+        <ul>
+            <% contacts.forEach(contact => { %>
+                <li>
+                    <strong><%= contact.name %></strong> (<%= contact.email %>) - <%= contact.message %>
+                </li>
+            <% }) %>
+        </ul>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 My Node App. All rights reserved.</p>
+    </footer>
 </body>
 </html>

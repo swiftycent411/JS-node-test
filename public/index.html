@@ -1,24 +1,29 @@
-node-test/
-├── public/
-│   ├── index.html
-│   ├── about.html
-│   ├── styles.css
-│   ├── script.js
-├── server.js
-├── package.json
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Page</title>
-    <link rel="stylesheet" href="styles.css">  <!-- ✅ Link CSS -->
+    <title>Welcome to My Node App</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>About Us</h1>
-    <p>This is the About page, and it's also styled with CSS.</p>
+    <header>
+        <h1><a href="/">Home</a></h1>
+        <nav>
+            <ul>
+                <li><a href="/contact">Contact</a></li>
+                <li><a href="/admin">Admin</a></li>
+            </ul>
+        </nav>
+    </header>
 
-    <script src="script.js"></script>  <!-- ✅ Link JavaScript -->
+    <main>
+        <h2>Welcome to the App</h2>
+        <p>This is the homepage of the Node.js application.</p>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 My Node App. All rights reserved.</p>
+    </footer>
 </body>
 </html>
