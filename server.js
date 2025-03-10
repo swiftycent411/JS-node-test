@@ -44,7 +44,7 @@ function writeData(data) {
 // ✅ Function to Get API Token
 async function getAuthToken() {
   try {
-    const url = ${process.env.API_ENDPOINT}/Authenticate?username=${encodeURIComponent(process.env.API_USERNAME)}&password=${encodeURIComponent(process.env.API_PASSWORD)};
+    const url = `${process.env.API_ENDPOINT}/Authenticate?username=${encodeURIComponent(process.env.API_USERNAME)}&password=${encodeURIComponent(process.env.API_PASSWORD)}`;
     const response = await axios.post(url, {}, { headers: { "Content-Type": "application/json" } });
     return response.data.replace(/\"/g, ""); // Remove wrapping quotes
   } catch (error) {
