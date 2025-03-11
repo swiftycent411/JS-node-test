@@ -108,7 +108,6 @@ async function fetchSurveyResponses() {
       </FilterGroup>
     </FilterDefinition>`;
 
-    // ✅ Ensure surveyId is a STRING (Not a number)
     const payload = JSON.stringify({
       token: authToken,
       surveyId: "312",
@@ -117,7 +116,6 @@ async function fetchSurveyResponses() {
 
     console.log("🔍 Fetch Survey Payload:", payload);
 
-    // ✅ Ensure proper content-type is used
     const response = await axios.post(
       `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/getResponsesBySurveyId`,
       payload,
@@ -133,14 +131,12 @@ async function fetchSurveyResponses() {
       return [];
     }
 
-    // ✅ Extract XML string from response JSON
     const xmlString = response.data.GetResponsesBySurveyIdResult;
     if (!xmlString) {
       console.error("❌ No responses found in API response.");
       return [];
     }
 
-    // ✅ Convert XML string to JSON using xml2js
     const parsedXml = await parseStringPromise(xmlString, { explicitArray: false });
 
     if (!parsedXml.Responses || !parsedXml.Responses.Response) {
@@ -164,6 +160,55 @@ async function fetchSurveyResponses() {
   }
 }
 
+// ✅ Function to Get API Token for Submission API
+async function getAuthToken() {
+  try {
+    const url = `${API_ENDPOINT}/Authenticate?username=${encodeURIComponent(API_USERNAME)}&password=${encodeURIComponent(API_PASSWORD)}`;
+    const response = await axios.post(url, {}, { headers: { "Content-Type": "application/json" } });
+    return response.data.replace(/\"/g, ""); // Remove wrapping quotes
+  } catch (error) {
+    console.error("❌ Error getting API token:", error.message);
+    return null;
+  }
+}
+
+// ✅ Function to Push Data to API
+async function pushDataToAPI(submission) {
+  try {
+    const authToken = await getAuthToken();
+    if (!authToken) {
+      console.error("🚨 No Auth Token: Aborting API request.");
+      return;
+    }
+
+    const payload = {
+      surveyCode: SURVEY_CODE,
+      sendAlerts: false,
+      name: "Contact Form Submission",
+      notificationEmails: NOTIFICATION_EMAILS,
+      UniqueRequestKey: "UniqueKey-" + new Date().toISOString(),
+      Respondents: [
+        {
+          CompletedDate: new Date().toISOString(),
+          StartedDate: new Date().toISOString(),
+          Language: "en",
+          Responses: submission,
+        },
+      ],
+    };
+
+    const response = await axios.post(`${API_ENDPOINT}/importRequest`, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        "authentication-Token": authToken,
+      },
+    });
+
+    console.log("✅ API Response:", response.data);
+  } catch (error) {
+    console.error("❌ Error sending data:", error.response ? error.response.data : error.message);
+  }
+}
 
 // ✅ Home Route
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
@@ -185,6 +230,9 @@ app.post("/submit-form", async (req, res) => {
 
   console.log("✅ Form Submission Saved:", newEntry);
 
+  // ✅ Push to API
+  await pushDataToAPI(newEntry);
+
   res.render("thank-you", { name });
 });
 
@@ -203,7 +251,6 @@ app.get("/fetch-responses", async (req, res) => {
 });
 
 // ✅ Fetch Survey Responses and Display in EJS
-console.log("📢 /responses route registered");
 app.get("/responses", async (req, res) => {
   console.log("📢 Fetching Responses...");
 
@@ -213,7 +260,6 @@ app.get("/responses", async (req, res) => {
     writeData(RESPONSES_FILE, responses);
   }
 
-  console.log("📢 API Fetched Responses:", responses.length);
   res.render("responses", { responses });
 });
 
