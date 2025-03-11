@@ -155,39 +155,75 @@ async function fetchSurveyResponses() {
       return [];
     }
 
+    // ✅ Format dates correctly
+    function formatDate(date) {
+      return new Date(date).toISOString().replace("T", " ").split(".")[0]; // Convert to 'YYYY-MM-DD HH:mm:ss'
+    }
+
+    const fromDate = formatDate(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
+    const toDate = formatDate(Date.now()); // Current date
+
+    // ✅ Build the filter XML
     const filterXML = `
-      <FilterDefinition> 
-        <FilterGroup GroupOperator='AND'> 
+      <FilterDefinition>
+        <FilterGroup GroupOperator='AND'>
           <FilterCriteria>
             <FilterColumn>CompletedDate</FilterColumn>
-            <FilterOperator>Between</FilterOperator> 
-            <FilterValue>${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()}</FilterValue>
-            <FilterValue>${new Date().toISOString()}</FilterValue>
+            <FilterOperator>Between</FilterOperator>
+            <FilterValue>${fromDate}</FilterValue>
+            <FilterValue>${toDate}</FilterValue>
           </FilterCriteria>
         </FilterGroup>
       </FilterDefinition>`;
 
+    // ✅ Hardcoded survey ID: 312
     const payload = {
       token: authToken,
-      surveyId: SURVEY_CODE,
+      surveyId: 312, // <--- HARD CODED
       filterXml: filterXML,
     };
 
-    const response = await axios.post(`${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/getResponsesBySurveyId`, payload, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    console.log("🔍 Fetch Survey Payload:", JSON.stringify(payload, null, 2));
 
-    const responses = response.data.GetResponsesBySurveyIdResult || [];
+    // ✅ Make API call with proper headers
+    const response = await axios.post(
+      `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/getResponsesBySurveyId`,
+      JSON.stringify(payload),
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    console.log("✅ Raw API Response:", response.data);
+
+    // ✅ Ensure the response format is correct
+    if (!response.data || typeof response.data !== "string") {
+      console.error("❌ Unexpected response format:", response.data);
+      return [];
+    }
+
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(response.data);
+    } catch (error) {
+      console.error("❌ Failed to parse response JSON:", response.data);
+      return [];
+    }
+
+    if (!parsedResponse.GetResponsesBySurveyIdResult) {
+      console.error("❌ API response is missing GetResponsesBySurveyIdResult:", parsedResponse);
+      return [];
+    }
+
+    const responses = parsedResponse.GetResponsesBySurveyIdResult;
     writeData(RESPONSES_FILE, responses);
-    console.log("✅ Responses Fetched & Stored.");
+    
+    console.log("✅ Responses Fetched & Stored:", responses.length);
     return responses;
   } catch (error) {
-    console.error("❌ Error fetching responses:", error.message);
+    console.error("❌ Error fetching responses:", error.message, "| Full Error:", error.response ? error.response.data : "No response data");
     return [];
   }
 }
+
 
 // ✅ Home Route
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
