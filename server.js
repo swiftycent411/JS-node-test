@@ -63,39 +63,50 @@ async function getAuthToken() {
 async function getMaritzAuthToken() {
   try {
     console.log("🔍 Fetching Maritz API Token...");
+
     const url = `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/authenticate`;
 
-    const payload = {
+    // Match the structure of Google Script's working payload
+    const payload = JSON.stringify({
       userName: API_USERNAME,
       password: API_PASSWORD,
       companyName: COMPANY_NAME
-    };
+    });
 
     const response = await axios.post(url, payload, {
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" }
     });
 
     console.log("🔍 Raw API Response:", response.data);
 
-    // Ensure response is valid JSON
-    if (!response.data || typeof response.data !== "object") {
+    // Ensure response is valid
+    if (!response.data || typeof response.data !== "string") {
       console.error("❌ Unexpected response format:", response.data);
       return null;
     }
 
-    // Check if AuthenticateResult exists
-    if (!response.data.AuthenticateResult) {
-      console.error("❌ API response is missing AuthenticateResult:", response.data);
+    // Parse response if it's a string
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(response.data);
+    } catch (error) {
+      console.error("❌ Failed to parse response JSON:", response.data);
       return null;
     }
 
-    console.log("✅ Authentication token received:", response.data.AuthenticateResult);
-    return response.data.AuthenticateResult;
+    if (!parsedResponse.AuthenticateResult) {
+      console.error("❌ API response is missing AuthenticateResult:", parsedResponse);
+      return null;
+    }
+
+    console.log("✅ Authentication token received:", parsedResponse.AuthenticateResult);
+    return parsedResponse.AuthenticateResult;
   } catch (error) {
     console.error("❌ Error getting Maritz API token:", error.message);
     return null;
   }
 }
+
 
 // ✅ Function to Push Data to API (Contact Form Submission)
 async function pushDataToAPI(submission) {
