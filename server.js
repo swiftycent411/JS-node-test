@@ -64,7 +64,7 @@ async function getMaritzAuthToken() {
   try {
     console.log("🔍 Fetching Maritz API Token...");
     const url = `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/authenticate`;
-    
+
     const payload = {
       userName: API_USERNAME,
       password: API_PASSWORD,
@@ -75,12 +75,21 @@ async function getMaritzAuthToken() {
       headers: { "Content-Type": "application/json" },
     });
 
-    console.log("🔍 API Response:", response.data);
+    console.log("🔍 Raw API Response:", response.data);
 
-    if (!response.data || !response.data.AuthenticateResult) {
-      throw new Error("❌ Invalid token response from Maritz API");
+    // Ensure response is valid JSON
+    if (!response.data || typeof response.data !== "object") {
+      console.error("❌ Unexpected response format:", response.data);
+      return null;
     }
 
+    // Check if AuthenticateResult exists
+    if (!response.data.AuthenticateResult) {
+      console.error("❌ API response is missing AuthenticateResult:", response.data);
+      return null;
+    }
+
+    console.log("✅ Authentication token received:", response.data.AuthenticateResult);
     return response.data.AuthenticateResult;
   } catch (error) {
     console.error("❌ Error getting Maritz API token:", error.message);
