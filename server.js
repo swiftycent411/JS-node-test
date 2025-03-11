@@ -94,33 +94,36 @@ async function fetchSurveyResponses() {
     const fromDate = formatDate(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
     const toDate = formatDate(Date.now()); // Current date
 
-    // ✅ Build the filter XML
-    const filterXML = `
-      <FilterDefinition>
-        <FilterGroup GroupOperator='AND'>
-          <FilterCriteria>
-            <FilterColumn>CompletedDate</FilterColumn>
-            <FilterOperator>Between</FilterOperator>
-            <FilterValue>${fromDate}</FilterValue>
-            <FilterValue>${toDate}</FilterValue>
-          </FilterCriteria>
-        </FilterGroup>
-      </FilterDefinition>`;
+    // ✅ Correctly formatted filter XML (Matches Google Apps Script)
+    const filterXML = `<FilterDefinition>
+      <FilterGroup GroupOperator="AND">
+        <FilterCriteria>
+          <FilterColumn>CompletedDate</FilterColumn>
+          <FilterOperator>Between</FilterOperator>
+          <FilterValue>${fromDate}</FilterValue>
+          <FilterValue>${toDate}</FilterValue>
+        </FilterCriteria>
+      </FilterGroup>
+    </FilterDefinition>`;
 
-    // ✅ Hardcoded survey ID: 312
-    const payload = {
+    // ✅ Ensure surveyId is a STRING (Not a number)
+    const payload = JSON.stringify({
       token: authToken,
-      surveyId: "312", // Ensure correct format (string if required)
+      surveyId: "312", // <-- Changed to a string
       filterXml: filterXML
-    };
+    });
 
-    console.log("🔍 Fetch Survey Payload:", JSON.stringify(payload, null, 2));
+    console.log("🔍 Fetch Survey Payload:", payload);
 
-    // ✅ Make API call with proper headers
+    // ✅ Ensure proper content-type is used
     const response = await axios.post(
       `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/getResponsesBySurveyId`,
-      JSON.stringify(payload),
-      { headers: { "Content-Type": "application/json" } }
+      payload,
+      {
+        headers: { 
+          "Content-Type": "application/json",
+        }
+      }
     );
 
     console.log("✅ Raw API Response:", response.data);
