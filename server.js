@@ -60,93 +60,6 @@ async function getAuthToken() {
 }
 
 // ✅ Function to Get API Token for Maritz API
-async function getMaritzAuthToken() {
-  try {
-    console.log("🔍 Fetching Maritz API Token...");
-
-    const url = `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/authenticate`;
-
-    // Match the structure of Google Script's working payload
-    const payload = JSON.stringify({
-      userName: API_USERNAME,
-      password: API_PASSWORD,
-      companyName: COMPANY_NAME
-    });
-
-    const response = await axios.post(url, payload, {
-      headers: { "Content-Type": "application/json" }
-    });
-
-    console.log("🔍 Raw API Response:", response.data);
-
-    // Ensure response is valid
-    if (!response.data || typeof response.data !== "string") {
-      console.error("❌ Unexpected response format:", response.data);
-      return null;
-    }
-
-    // Parse response if it's a string
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(response.data);
-    } catch (error) {
-      console.error("❌ Failed to parse response JSON:", response.data);
-      return null;
-    }
-
-    if (!parsedResponse.AuthenticateResult) {
-      console.error("❌ API response is missing AuthenticateResult:", parsedResponse);
-      return null;
-    }
-
-    console.log("✅ Authentication token received:", parsedResponse.AuthenticateResult);
-    return parsedResponse.AuthenticateResult;
-  } catch (error) {
-    console.error("❌ Error getting Maritz API token:", error.message);
-    return null;
-  }
-}
-
-
-// ✅ Function to Push Data to API (Contact Form Submission)
-async function pushDataToAPI(submission) {
-  try {
-    const authToken = await getAuthToken();
-    if (!authToken) {
-      console.error("🚨 No Auth Token: Aborting API request.");
-      return;
-    }
-
-    const payload = {
-      surveyCode: SURVEY_CODE,
-      sendAlerts: true,
-      name: "Contact Form Submission",
-      notificationEmails: NOTIFICATION_EMAILS,
-      UniqueRequestKey: `UniqueKey-${new Date().toISOString()}`,
-      Respondents: [
-        {
-          CompletedDate: new Date().toISOString(),
-          StartedDate: new Date().toISOString(),
-          Language: "en",
-          Responses: submission,
-        },
-      ],
-    };
-
-    const response = await axios.post(`${API_ENDPOINT}/importRequest`, payload, {
-      headers: {
-        "Content-Type": "application/json",
-        "authentication-Token": authToken,
-      },
-    });
-
-    console.log("✅ API Response:", response.data);
-  } catch (error) {
-    console.error("❌ Error sending data:", error.response ? error.response.data : error.message);
-  }
-}
-
-// ✅ Function to Fetch Responses from Maritz API
 async function fetchSurveyResponses() {
   try {
     const authToken = await getMaritzAuthToken();
@@ -194,7 +107,6 @@ async function fetchSurveyResponses() {
 
     console.log("✅ Raw API Response:", response.data);
 
-    // ✅ Ensure the response format is correct
     if (!response.data || typeof response.data !== "string") {
       console.error("❌ Unexpected response format:", response.data);
       return [];
@@ -223,6 +135,7 @@ async function fetchSurveyResponses() {
     return [];
   }
 }
+
 
 
 // ✅ Home Route
