@@ -59,10 +59,12 @@ async function getAuthToken() {
   }
 }
 
-// ✅ Function to Get API Token for Maritz API
+/ ✅ Function to Get API Token for Maritz API
 async function getMaritzAuthToken() {
   try {
+    console.log("🔍 Fetching Maritz API Token...");
     const url = `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/authenticate`;
+    
     const payload = {
       userName: API_USERNAME,
       password: API_PASSWORD,
@@ -73,7 +75,13 @@ async function getMaritzAuthToken() {
       headers: { "Content-Type": "application/json" },
     });
 
-    return response.data.replace(/\"/g, "");
+    console.log("🔍 API Response:", response.data);
+
+    if (!response.data || !response.data.AuthenticateResult) {
+      throw new Error("❌ Invalid token response from Maritz API");
+    }
+
+    return response.data.AuthenticateResult;
   } catch (error) {
     console.error("❌ Error getting Maritz API token:", error.message);
     return null;
@@ -193,21 +201,27 @@ app.get("/admin", (req, res) => {
   res.render("admin", { contacts: submissions });
 });
 
-// ✅ Fetch Survey Responses and Display
+// ✅ Debugging: Fetch responses and return JSON
+app.get("/fetch-responses", async (req, res) => {
+  console.log("🔍 Fetching survey responses...");
+  const responses = await fetchSurveyResponses();
+  console.log("🔍 API Fetched Responses:", responses.length);
+  res.json(responses);
+});
+
+// ✅ Fetch Survey Responses and Display in EJS
 console.log("📢 /responses route registered");
 app.get("/responses", async (req, res) => {
   console.log("📢 Fetching Responses...");
 
-  // Force fetch from API since file is missing
-  const responses = await fetchSurveyResponses();
+  // Force fetch from API if needed
+  let responses = readData(RESPONSES_FILE);
+  if (responses.length === 0) {
+    responses = await fetchSurveyResponses();
+    writeData(RESPONSES_FILE, responses);
+  }
 
-  // Log fetched data
   console.log("📢 API Fetched Responses:", responses.length);
-
-  // Store responses to file
-  writeData(RESPONSES_FILE, responses);
-
-  // Render page with new responses
   res.render("responses", { responses });
 });
 
