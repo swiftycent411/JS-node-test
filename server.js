@@ -79,6 +79,8 @@ async function getMaritzAuthToken() {
 }
 
 // ✅ Function to Fetch Survey Responses
+const { parseStringPromise } = require("xml2js"); // Import XML parser
+
 async function fetchSurveyResponses() {
   try {
     const authToken = await getMaritzAuthToken();
@@ -135,7 +137,6 @@ async function fetchSurveyResponses() {
       return [];
     }
 
-    // ✅ Convert XML string to JSON using xml2js
     const parsedXml = await parseStringPromise(xmlString, { explicitArray: false });
 
     if (!parsedXml.Responses || !parsedXml.Responses.Response) {
@@ -143,38 +144,18 @@ async function fetchSurveyResponses() {
       return [];
     }
 
-    let responses = Array.isArray(parsedXml.Responses.Response)
+    const responses = Array.isArray(parsedXml.Responses.Response)
       ? parsedXml.Responses.Response
       : [parsedXml.Responses.Response];
 
-    // ✅ Process each response to extract ResponseText or ResponseMemo
-    responses = responses.map((resp) => {
-      let responseText = "";
-      if (resp.ResponseText) {
-        responseText = resp.ResponseText;
-      } else if (resp.ResponseMemo) {
-        responseText = resp.ResponseMemo;
-      }
-
-      return {
-        ...resp,
-        ResponseText: responseText, // Standardizing to always use ResponseText
-      };
-    });
-
-    console.log("✅ Processed Responses:", responses);
+    console.log("✅ Parsed Responses:", responses);
 
     writeData(RESPONSES_FILE, responses);
     console.log("✅ Responses Fetched & Stored:", responses.length);
 
     return responses;
   } catch (error) {
-    console.error(
-      "❌ Error fetching responses:",
-      error.message,
-      "| Full Error:",
-      error.response ? error.response.data : "No response data"
-    );
+    console.error("❌ Error fetching responses:", error.message, "| Full Error:", error.response ? error.response.data : "No response data");
     return [];
   }
 }
