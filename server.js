@@ -59,7 +59,7 @@ async function getAuthToken() {
   }
 }
 
-/ ✅ Function to Get API Token for Maritz API
+// ✅ Function to Get API Token for Maritz API
 async function getMaritzAuthToken() {
   try {
     console.log("🔍 Fetching Maritz API Token...");
