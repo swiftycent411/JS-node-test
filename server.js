@@ -14,18 +14,23 @@ const API_ENDPOINT = process.env.API_ENDPOINT;
 const SURVEY_CODE = process.env.SURVEY_CODE;
 const NOTIFICATION_EMAILS = process.env.NOTIFICATION_EMAILS;
 
+// New API Variables for Maritz API
+const MARITZ_API_ENDPOINT = "https://sampleapi.allegiancetech.com";
+const COMPANY_NAME = "maritzresearch.allegiancetech.com";
+
+const DATA_FILE = path.join(__dirname, "data.json");
+const RESPONSES_FILE = path.join(__dirname, "responses.json");
+
 // ✅ Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.use(express.static(path.join(__dirname, "public")));
 
-const DATA_FILE = path.join(__dirname, "data.json");
-
 // ✅ Function to Read Data from JSON File
-function readData() {
+function readData(filePath) {
   try {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    const data = fs.readFileSync(DATA_FILE, "utf8");
+    if (!fs.existsSync(filePath)) return [];
+    const data = fs.readFileSync(filePath, "utf8");
     return JSON.parse(data);
   } catch (err) {
     console.error("❌ Error reading data file:", err);
@@ -34,15 +39,15 @@ function readData() {
 }
 
 // ✅ Function to Write Data to JSON File
-function writeData(data) {
+function writeData(filePath, data) {
   try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf8");
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
   } catch (err) {
     console.error("❌ Error writing data file:", err);
   }
 }
 
-// ✅ Function to Get API Token
+// ✅ Function to Get API Token for InMoment eSaaS
 async function getAuthToken() {
   try {
     const url = `${API_ENDPOINT}/Authenticate?username=${encodeURIComponent(API_USERNAME)}&password=${encodeURIComponent(API_PASSWORD)}`;
@@ -54,7 +59,28 @@ async function getAuthToken() {
   }
 }
 
-// ✅ Function to Push Data to API
+// ✅ Function to Get API Token for Maritz API
+async function getMaritzAuthToken() {
+  try {
+    const url = `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/authenticate`;
+    const payload = {
+      userName: API_USERNAME,
+      password: API_PASSWORD,
+      companyName: COMPANY_NAME
+    };
+
+    const response = await axios.post(url, payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    return response.data.replace(/\"/g, "");
+  } catch (error) {
+    console.error("❌ Error getting Maritz API token:", error.message);
+    return null;
+  }
+}
+
+// ✅ Function to Push Data to API (Contact Form Submission)
 async function pushDataToAPI(submission) {
   try {
     const authToken = await getAuthToken();
@@ -92,6 +118,49 @@ async function pushDataToAPI(submission) {
   }
 }
 
+// ✅ Function to Fetch Responses from Maritz API
+async function fetchSurveyResponses() {
+  try {
+    const authToken = await getMaritzAuthToken();
+    if (!authToken) {
+      console.error("🚨 No Auth Token: Aborting fetch request.");
+      return [];
+    }
+
+    const filterXML = `
+      <FilterDefinition> 
+        <FilterGroup GroupOperator='AND'> 
+          <FilterCriteria>
+            <FilterColumn>CompletedDate</FilterColumn>
+            <FilterOperator>Between</FilterOperator> 
+            <FilterValue>${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()}</FilterValue>
+            <FilterValue>${new Date().toISOString()}</FilterValue>
+          </FilterCriteria>
+        </FilterGroup>
+      </FilterDefinition>`;
+
+    const payload = {
+      token: authToken,
+      surveyId: SURVEY_CODE,
+      filterXml: filterXML,
+    };
+
+    const response = await axios.post(`${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/getResponsesBySurveyId`, payload, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const responses = response.data.GetResponsesBySurveyIdResult || [];
+    writeData(RESPONSES_FILE, responses);
+    console.log("✅ Responses Fetched & Stored.");
+    return responses;
+  } catch (error) {
+    console.error("❌ Error fetching responses:", error.message);
+    return [];
+  }
+}
+
 // ✅ Home Route
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
@@ -104,11 +173,11 @@ app.get("/resume", (req, res) => res.sendFile(path.join(__dirname, "public", "re
 // ✅ Handle Contact Form Submission
 app.post("/submit-form", async (req, res) => {
   const { name, email, message } = req.body;
-  const submissions = readData();
+  const submissions = readData(DATA_FILE);
   const newEntry = { id: submissions.length + 1, name, email, message, createdAt: new Date() };
 
   submissions.push(newEntry);
-  writeData(submissions);
+  writeData(DATA_FILE, submissions);
 
   console.log("✅ Form Submission Saved:", newEntry);
 
@@ -120,8 +189,17 @@ app.post("/submit-form", async (req, res) => {
 
 // ✅ Admin Panel Route
 app.get("/admin", (req, res) => {
-  const submissions = readData();
+  const submissions = readData(DATA_FILE);
   res.render("admin", { contacts: submissions });
+});
+
+// ✅ Fetch Survey Responses and Display
+app.get("/responses", async (req, res) => {
+  const responses = readData(RESPONSES_FILE);
+  if (responses.length === 0) {
+    await fetchSurveyResponses();
+  }
+  res.render("responses", { responses: readData(RESPONSES_FILE) });
 });
 
 // ✅ Start Server
