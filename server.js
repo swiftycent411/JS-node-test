@@ -195,11 +195,19 @@ app.get("/admin", (req, res) => {
 
 // ✅ Fetch Survey Responses and Display
 app.get("/responses", async (req, res) => {
-  const responses = readData(RESPONSES_FILE);
-  if (responses.length === 0) {
-    await fetchSurveyResponses();
-  }
-  res.render("responses", { responses: readData(RESPONSES_FILE) });
+  console.log("📢 Fetching Responses...");
+
+  // Force fetch from API since file is missing
+  const responses = await fetchSurveyResponses();
+
+  // Log fetched data
+  console.log("📢 API Fetched Responses:", responses.length);
+
+  // Store responses to file
+  writeData(RESPONSES_FILE, responses);
+
+  // Render page with new responses
+  res.render("responses", { responses });
 });
 
 // ✅ Start Server
