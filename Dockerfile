@@ -13,8 +13,11 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Copy all project files
+# Copy all project files (including responses.json)
 COPY . .
+
+# Ensure responses.json is always present
+RUN touch responses.json
 
 # Expose port 8080 for Cloud Run
 EXPOSE 8080
