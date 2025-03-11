@@ -79,6 +79,8 @@ async function getMaritzAuthToken() {
 }
 
 // ✅ Function to Fetch Survey Responses
+const { parseStringPromise } = require("xml2js"); // Import XML parser
+
 async function fetchSurveyResponses() {
   try {
     const authToken = await getMaritzAuthToken();
@@ -94,7 +96,7 @@ async function fetchSurveyResponses() {
     const fromDate = formatDate(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
     const toDate = formatDate(Date.now()); // Current date
 
-    // ✅ Correctly formatted filter XML (Matches Google Apps Script)
+    // ✅ Correctly formatted filter XML
     const filterXML = `<FilterDefinition>
       <FilterGroup GroupOperator="AND">
         <FilterCriteria>
@@ -109,7 +111,7 @@ async function fetchSurveyResponses() {
     // ✅ Ensure surveyId is a STRING (Not a number)
     const payload = JSON.stringify({
       token: authToken,
-      surveyId: "312", // <-- Changed to a string
+      surveyId: "312",
       filterXml: filterXML
     });
 
@@ -120,42 +122,48 @@ async function fetchSurveyResponses() {
       `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/getResponsesBySurveyId`,
       payload,
       {
-        headers: { 
-          "Content-Type": "application/json",
-        }
+        headers: { "Content-Type": "application/json" }
       }
     );
 
     console.log("✅ Raw API Response:", response.data);
 
-    if (!response.data || typeof response.data !== "string") {
+    if (!response.data || typeof response.data !== "object") {
       console.error("❌ Unexpected response format:", response.data);
       return [];
     }
 
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(response.data);
-    } catch (error) {
-      console.error("❌ Failed to parse response JSON:", response.data);
+    // ✅ Extract XML string from response JSON
+    const xmlString = response.data.GetResponsesBySurveyIdResult;
+    if (!xmlString) {
+      console.error("❌ No responses found in API response.");
       return [];
     }
 
-    if (!parsedResponse.GetResponsesBySurveyIdResult) {
-      console.error("❌ API response is missing GetResponsesBySurveyIdResult:", parsedResponse);
+    // ✅ Convert XML string to JSON using xml2js
+    const parsedXml = await parseStringPromise(xmlString, { explicitArray: false });
+
+    if (!parsedXml.Responses || !parsedXml.Responses.Response) {
+      console.error("❌ No valid responses in parsed XML:", parsedXml);
       return [];
     }
 
-    const responses = parsedResponse.GetResponsesBySurveyIdResult;
+    const responses = Array.isArray(parsedXml.Responses.Response)
+      ? parsedXml.Responses.Response
+      : [parsedXml.Responses.Response];
+
+    console.log("✅ Parsed Responses:", responses);
+
     writeData(RESPONSES_FILE, responses);
-
     console.log("✅ Responses Fetched & Stored:", responses.length);
+
     return responses;
   } catch (error) {
     console.error("❌ Error fetching responses:", error.message, "| Full Error:", error.response ? error.response.data : "No response data");
     return [];
   }
 }
+
 
 // ✅ Home Route
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
