@@ -47,19 +47,38 @@ function writeData(filePath, data) {
   }
 }
 
-// ✅ Function to Get API Token for InMoment eSaaS
-async function getAuthToken() {
+// ✅ Function to Get API Token for Maritz API
+async function getMaritzAuthToken() {
   try {
-    const url = `${API_ENDPOINT}/Authenticate?username=${encodeURIComponent(API_USERNAME)}&password=${encodeURIComponent(API_PASSWORD)}`;
-    const response = await axios.post(url, {}, { headers: { "Content-Type": "application/json" } });
-    return response.data.replace(/\"/g, ""); // Remove wrapping quotes
+    console.log("🔍 Fetching Maritz API Token...");
+    const url = `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/authenticate`;
+
+    const payload = {
+      userName: API_USERNAME,
+      password: API_PASSWORD,
+      companyName: COMPANY_NAME
+    };
+
+    const response = await axios.post(url, payload, {
+      headers: { "Content-Type": "application/json" }
+    });
+
+    console.log("🔍 Raw API Response:", response.data);
+
+    if (!response.data || !response.data.AuthenticateResult) {
+      throw new Error("❌ Invalid token response from Maritz API");
+    }
+
+    const token = response.data.AuthenticateResult;
+    console.log("✅ Authentication token received:", token);
+    return token;
   } catch (error) {
-    console.error("❌ Error getting API token:", error.message);
+    console.error("❌ Error getting Maritz API token:", error.message);
     return null;
   }
 }
 
-// ✅ Function to Get API Token for Maritz API
+// ✅ Function to Fetch Survey Responses
 async function fetchSurveyResponses() {
   try {
     const authToken = await getMaritzAuthToken();
@@ -68,7 +87,6 @@ async function fetchSurveyResponses() {
       return [];
     }
 
-    // ✅ Format dates correctly
     function formatDate(date) {
       return new Date(date).toISOString().replace("T", " ").split(".")[0]; // Convert to 'YYYY-MM-DD HH:mm:ss'
     }
@@ -92,8 +110,8 @@ async function fetchSurveyResponses() {
     // ✅ Hardcoded survey ID: 312
     const payload = {
       token: authToken,
-      surveyId: 312, // <--- HARD CODED
-      filterXml: filterXML,
+      surveyId: "312", // Ensure correct format (string if required)
+      filterXml: filterXML
     };
 
     console.log("🔍 Fetch Survey Payload:", JSON.stringify(payload, null, 2));
@@ -127,7 +145,7 @@ async function fetchSurveyResponses() {
 
     const responses = parsedResponse.GetResponsesBySurveyIdResult;
     writeData(RESPONSES_FILE, responses);
-    
+
     console.log("✅ Responses Fetched & Stored:", responses.length);
     return responses;
   } catch (error) {
@@ -135,8 +153,6 @@ async function fetchSurveyResponses() {
     return [];
   }
 }
-
-
 
 // ✅ Home Route
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
@@ -158,9 +174,6 @@ app.post("/submit-form", async (req, res) => {
 
   console.log("✅ Form Submission Saved:", newEntry);
 
-  // ✅ Push to API
-  await pushDataToAPI(newEntry);
-
   res.render("thank-you", { name });
 });
 
@@ -170,7 +183,7 @@ app.get("/admin", (req, res) => {
   res.render("admin", { contacts: submissions });
 });
 
-// ✅ Debugging: Fetch responses and return JSON
+// ✅ Fetch responses and return JSON
 app.get("/fetch-responses", async (req, res) => {
   console.log("🔍 Fetching survey responses...");
   const responses = await fetchSurveyResponses();
@@ -183,7 +196,6 @@ console.log("📢 /responses route registered");
 app.get("/responses", async (req, res) => {
   console.log("📢 Fetching Responses...");
 
-  // Force fetch from API if needed
   let responses = readData(RESPONSES_FILE);
   if (responses.length === 0) {
     responses = await fetchSurveyResponses();
