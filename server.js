@@ -194,6 +194,7 @@ app.get("/admin", (req, res) => {
 });
 
 // ✅ Fetch Survey Responses and Display
+console.log("📢 /responses route registered");
 app.get("/responses", async (req, res) => {
   console.log("📢 Fetching Responses...");
 
