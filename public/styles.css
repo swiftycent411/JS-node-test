@@ -131,3 +131,12 @@ td, th {
 .admin-page main {
     max-width: 900px;
 }
+
+.profile-img li {
+    text-align: left;
+    padding 10px;
+}
+
+.resume-container {
+    text-align: left;
+}
