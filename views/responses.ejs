@@ -8,14 +8,12 @@
 </head>
 <body>
     <h1>Survey Responses</h1>
-    
-    <table border="1">
+    <table>
         <thead>
             <tr>
                 <th>Survey ID</th>
                 <th>Respondent ID</th>
-                <th>Completed Date</th>
-                <th>Contact Name</th>
+                <th>Contact</th>
                 <th>Email</th>
                 <th>Response Memo</th>
             </tr>
@@ -25,14 +23,14 @@
                 const response = groupedResponses[respondentId]; %>
                 <tr>
                     <td><%= response.SurveyId %></td>
-                    <td><%= respondentId %></td>
-                    <td><%= response.CompletedDate || "N/A" %></td>
-                    <td><%= response.ContactName || "N/A" %></td>
-                    <td><%= response.Email || "N/A" %></td>
-                    <td><%= response.ResponseMemo || "N/A" %></td>
+                    <td><%= response.RespondentId %></td>
+                    <td><%= response.Contact %></td>
+                    <td><%= response.Email %></td>
+                    <td><%= response.ResponseMemo %></td>
                 </tr>
             <% }); %>
         </tbody>
     </table>
 </body>
 </html>
+

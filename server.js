@@ -281,11 +281,39 @@ app.get("/responses", async (req, res) => {
 
   let responses = readData(RESPONSES_FILE);
   if (responses.length === 0) {
-    responses = await fetchSurveyResponses();
-    writeData(RESPONSES_FILE, responses);
+      responses = await fetchSurveyResponses();
+      writeData(RESPONSES_FILE, responses);
   }
 
-  res.render("responses", { responses });
+  // ✅ Group responses by respondentId
+  const groupedResponses = {};
+  responses.forEach(response => {
+      const respondentId = response.RespondentId;
+      if (!groupedResponses[respondentId]) {
+          groupedResponses[respondentId] = {
+              SurveyId: response.SurveyId,
+              RespondentId: response.RespondentId,
+              Contact: "",
+              Email: "",
+              ResponseMemo: ""
+          };
+      }
+
+      // ✅ Assign values based on AnswerId
+      if (response.AnswerId === "101317") {
+          groupedResponses[respondentId].Contact = response.ResponseText || "";
+      }
+      if (response.AnswerId === "101316") {
+          groupedResponses[respondentId].Email = response.ResponseText || "";
+      }
+      if (response.AnswerId === "101315") {
+          groupedResponses[respondentId].ResponseMemo = response.ResponseMemo || "";
+      }
+  });
+
+  console.log("✅ Grouped Responses:", groupedResponses);
+
+  res.render("responses", { groupedResponses });
 });
 
 // ✅ Start Server
