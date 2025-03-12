@@ -153,7 +153,8 @@ async function fetchSurveyResponses() {
 
       if (resp.ResponseText && resp.ResponseText !== "") {
         responseText = resp.ResponseText;
-      } else if (resp.ResponseMemo && resp.ResponseMemo !== "") {
+      }
+      if (resp.ResponseMemo && resp.ResponseMemo !== "") {
         responseText = resp.ResponseMemo;
       }
 
