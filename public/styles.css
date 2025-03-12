@@ -114,3 +114,16 @@ footer {
     position: fixed;
     width: 100%;
 }
+
+/* table styles */
+td:nth-child(5) {
+    text-align: left;
+    text-wrap: auto;
+    padding: 5px;
+    max-width: 400px;
+}
+
+td, th {
+    border: 1px solid gainsboro;
+    padding: 5px;
+}
