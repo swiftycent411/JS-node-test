@@ -151,11 +151,13 @@ async function fetchSurveyResponses() {
     responses = responses.map((resp) => {
       let responseText = "";
 
-      if (resp.ResponseText && resp.ResponseText !== "") {
-        responseText = resp.ResponseText;
-      }
-      if (resp.ResponseMemo && resp.ResponseMemo !== "") {
+      // ✅ If ResponseMemo exists, use it first
+      if (resp.ResponseMemo && resp.ResponseMemo.trim() !== "") {
         responseText = resp.ResponseMemo;
+      } 
+      // ✅ Otherwise, fallback to ResponseText
+      else if (resp.ResponseText && resp.ResponseText.trim() !== "") {
+        responseText = resp.ResponseText;
       }
 
       return {
