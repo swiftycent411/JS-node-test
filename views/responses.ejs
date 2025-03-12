@@ -8,29 +8,33 @@
 </head>
 <body>
     <h1>Survey Responses</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Survey ID</th>
-                <th>Respondent ID</th>
-                <th>Contact</th>
-                <th>Email</th>
-                <th>Response Memo</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% Object.keys(groupedResponses).forEach(respondentId => { 
-                const response = groupedResponses[respondentId]; %>
+    <% if (!groupedResponses || Object.keys(groupedResponses).length === 0) { %>
+        <p>No responses available.</p>
+    <% } else { %>
+        <table>
+            <thead>
                 <tr>
-                    <td><%= response.SurveyId %></td>
-                    <td><%= response.RespondentId %></td>
-                    <td><%= response.Contact %></td>
-                    <td><%= response.Email %></td>
-                    <td><%= response.ResponseMemo %></td>
+                    <th>Survey ID</th>
+                    <th>Respondent ID</th>
+                    <th>Contact Name</th>
+                    <th>Email</th>
+                    <th>Response Memo</th>
                 </tr>
-            <% }); %>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <% Object.keys(groupedResponses).forEach(respondentId => { 
+                    const response = groupedResponses[respondentId]; %>
+                    <tr>
+                        <td><%= response.SurveyId || "N/A" %></td>
+                        <td><%= response.RespondentId || "N/A" %></td>
+                        <td><%= response.Contact || "N/A" %></td>
+                        <td><%= response.Email || "N/A" %></td>
+                        <td><%= response.ResponseMemo || "N/A" %></td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    <% } %>
 </body>
 </html>
 

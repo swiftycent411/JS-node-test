@@ -86,14 +86,14 @@ async function fetchSurveyResponses() {
       const authToken = await getMaritzAuthToken();
       if (!authToken) {
           console.error("🚨 No Auth Token: Aborting fetch request.");
-          return [];
+          return []; // <-- Return empty array instead of empty object
       }
 
       function formatDate(date) {
           return new Date(date).toISOString().replace("T", " ").split(".")[0];
       }
 
-      const fromDate = formatDate(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
+      const fromDate = formatDate(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const toDate = formatDate(Date.now());
 
       const filterXML = `<FilterDefinition>
@@ -147,42 +147,14 @@ async function fetchSurveyResponses() {
 
       console.log("✅ Parsed Responses:", responses);
 
-      // ✅ Group responses by RespondentId and map specific fields
-      const groupedResponses = {};
-      
-      responses.forEach(resp => {
-          const respondentId = resp.RespondentId;
-          if (!groupedResponses[respondentId]) {
-              groupedResponses[respondentId] = {
-                  SurveyId: resp.SurveyId,
-                  CompletedDate: resp.CompletedDate || "N/A",
-                  ContactName: null,
-                  Email: null,
-                  ResponseMemo: null
-              };
-          }
-
-          if (resp.AnswerId === "13005" && resp.ResponseText) {
-              groupedResponses[respondentId].ContactName = resp.ResponseText;
-          }
-
-          if (resp.AnswerId === "13004" && resp.ResponseText) {
-              groupedResponses[respondentId].Email = resp.ResponseText;
-          }
-
-          if (resp.AnswerId === "13003") {
-              groupedResponses[respondentId].ResponseMemo = resp.ResponseMemo || resp.ResponseText || "N/A";
-          }
-      });
-
-      console.log("✅ Grouped Responses:", groupedResponses);
-
-      return groupedResponses;
+      // ✅ Ensure we always return an array
+      return responses || [];  
   } catch (error) {
       console.error("❌ Error fetching responses:", error.message, "| Full Error:", error.response ? error.response.data : "No response data");
-      return {};
+      return [];
   }
 }
+
 
 
 // ✅ Function to Get API Token for Submission API
@@ -280,12 +252,20 @@ app.get("/responses", async (req, res) => {
   console.log("📢 Fetching Responses...");
 
   let responses = readData(RESPONSES_FILE);
-  if (responses.length === 0) {
+  if (!responses || responses.length === 0) {
+      console.log("📢 No local responses found, fetching from API...");
       responses = await fetchSurveyResponses();
       writeData(RESPONSES_FILE, responses);
   }
 
-  // ✅ Group responses by respondentId
+  if (!responses || responses.length === 0) {
+      console.error("❌ No responses available. Returning empty page.");
+      return res.render("responses", { groupedResponses: {} });
+  }
+
+  console.log("📢 Responses Fetched:", responses.length);
+
+  // ✅ Group responses by RespondentId
   const groupedResponses = {};
   responses.forEach(response => {
       const respondentId = response.RespondentId;
