@@ -83,103 +83,104 @@ const { parseStringPromise } = require("xml2js"); // Import XML parser
 
 async function fetchSurveyResponses() {
   try {
-    const authToken = await getMaritzAuthToken();
-    if (!authToken) {
-      console.error("🚨 No Auth Token: Aborting fetch request.");
-      return [];
-    }
-
-    function formatDate(date) {
-      return new Date(date).toISOString().replace("T", " ").split(".")[0]; // Convert to 'YYYY-MM-DD HH:mm:ss'
-    }
-
-    const fromDate = formatDate(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
-    const toDate = formatDate(Date.now()); // Current date
-
-    const filterXML = `<FilterDefinition>
-      <FilterGroup GroupOperator="AND">
-        <FilterCriteria>
-          <FilterColumn>CompletedDate</FilterColumn>
-          <FilterOperator>Between</FilterOperator>
-          <FilterValue>${fromDate}</FilterValue>
-          <FilterValue>${toDate}</FilterValue>
-        </FilterCriteria>
-      </FilterGroup>
-    </FilterDefinition>`;
-
-    const payload = JSON.stringify({
-      token: authToken,
-      surveyId: "312",
-      filterXml: filterXML
-    });
-
-    console.log("🔍 Fetch Survey Payload:", payload);
-
-    const response = await axios.post(
-      `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/getResponsesBySurveyId`,
-      payload,
-      {
-        headers: { "Content-Type": "application/json" }
-      }
-    );
-
-    console.log("✅ Raw API Response:", response.data);
-
-    if (!response.data || typeof response.data !== "object") {
-      console.error("❌ Unexpected response format:", response.data);
-      return [];
-    }
-
-    const xmlString = response.data.GetResponsesBySurveyIdResult;
-    if (!xmlString) {
-      console.error("❌ No responses found in API response.");
-      return [];
-    }
-
-    const parsedXml = await parseStringPromise(xmlString, { explicitArray: false });
-
-    if (!parsedXml.Responses || !parsedXml.Responses.Response) {
-      console.error("❌ No valid responses in parsed XML:", parsedXml);
-      return [];
-    }
-
-    let responses = Array.isArray(parsedXml.Responses.Response)
-      ? parsedXml.Responses.Response
-      : [parsedXml.Responses.Response];
-
-    // ✅ Process each response and extract ResponseText or ResponseMemo
-    responses = responses.map((resp) => {
-      let responseText = "";
-
-      // ✅ If ResponseMemo exists, use it first
-      if (resp.ResponseMemo && resp.ResponseMemo.trim() !== "") {
-        responseText = resp.ResponseMemo;
-      } 
-      // ✅ Otherwise, fallback to ResponseText
-      else if (resp.ResponseText && resp.ResponseText.trim() !== "") {
-        responseText = resp.ResponseText;
+      const authToken = await getMaritzAuthToken();
+      if (!authToken) {
+          console.error("🚨 No Auth Token: Aborting fetch request.");
+          return [];
       }
 
-      return {
-        ...resp,
-        ExtractedText: responseText, // Ensure there's always an extracted field
-      };
-    });
+      function formatDate(date) {
+          return new Date(date).toISOString().replace("T", " ").split(".")[0];
+      }
 
-    console.log("✅ Processed Responses:", JSON.stringify(responses, null, 2));
+      const fromDate = formatDate(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
+      const toDate = formatDate(Date.now());
 
-    writeData(RESPONSES_FILE, responses);
-    console.log(`✅ Responses Fetched & Stored: ${responses.length} responses`);
+      const filterXML = `<FilterDefinition>
+          <FilterGroup GroupOperator="AND">
+              <FilterCriteria>
+                  <FilterColumn>CompletedDate</FilterColumn>
+                  <FilterOperator>Between</FilterOperator>
+                  <FilterValue>${fromDate}</FilterValue>
+                  <FilterValue>${toDate}</FilterValue>
+              </FilterCriteria>
+          </FilterGroup>
+      </FilterDefinition>`;
 
-    return responses;
+      const payload = JSON.stringify({
+          token: authToken,
+          surveyId: "312",
+          filterXml: filterXML
+      });
+
+      console.log("🔍 Fetch Survey Payload:", payload);
+
+      const response = await axios.post(
+          `${MARITZ_API_ENDPOINT}/EmailImport.HttpService.svc/web/getResponsesBySurveyId`,
+          payload,
+          { headers: { "Content-Type": "application/json" } }
+      );
+
+      console.log("✅ Raw API Response:", response.data);
+
+      if (!response.data || typeof response.data !== "object") {
+          console.error("❌ Unexpected response format:", response.data);
+          return [];
+      }
+
+      const xmlString = response.data.GetResponsesBySurveyIdResult;
+      if (!xmlString) {
+          console.error("❌ No responses found in API response.");
+          return [];
+      }
+
+      const parsedXml = await parseStringPromise(xmlString, { explicitArray: false });
+
+      if (!parsedXml.Responses || !parsedXml.Responses.Response) {
+          console.error("❌ No valid responses in parsed XML:", parsedXml);
+          return [];
+      }
+
+      let responses = Array.isArray(parsedXml.Responses.Response)
+          ? parsedXml.Responses.Response
+          : [parsedXml.Responses.Response];
+
+      console.log("✅ Parsed Responses:", responses);
+
+      // ✅ Group responses by RespondentId and map specific fields
+      const groupedResponses = {};
+      
+      responses.forEach(resp => {
+          const respondentId = resp.RespondentId;
+          if (!groupedResponses[respondentId]) {
+              groupedResponses[respondentId] = {
+                  SurveyId: resp.SurveyId,
+                  CompletedDate: resp.CompletedDate || "N/A",
+                  ContactName: null,
+                  Email: null,
+                  ResponseMemo: null
+              };
+          }
+
+          if (resp.AnswerId === "13005" && resp.ResponseText) {
+              groupedResponses[respondentId].ContactName = resp.ResponseText;
+          }
+
+          if (resp.AnswerId === "13004" && resp.ResponseText) {
+              groupedResponses[respondentId].Email = resp.ResponseText;
+          }
+
+          if (resp.AnswerId === "13003") {
+              groupedResponses[respondentId].ResponseMemo = resp.ResponseMemo || resp.ResponseText || "N/A";
+          }
+      });
+
+      console.log("✅ Grouped Responses:", groupedResponses);
+
+      return groupedResponses;
   } catch (error) {
-    console.error(
-      "❌ Error fetching responses:",
-      error.message,
-      "| Full Error:",
-      error.response ? JSON.stringify(error.response.data, null, 2) : "No response data"
-    );
-    return [];
+      console.error("❌ Error fetching responses:", error.message, "| Full Error:", error.response ? error.response.data : "No response data");
+      return {};
   }
 }
 

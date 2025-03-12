@@ -8,21 +8,31 @@
 </head>
 <body>
     <h1>Survey Responses</h1>
-    <table>
-        <tr>
-            <th>Survey ID</th>
-            <th>Respondent ID</th>
-            <th>Response Text</th>
-            <th>Completed Date</th>
-        </tr>
-        <% responses.forEach(response => { %>
+    
+    <table border="1">
+        <thead>
             <tr>
-                <td><%= response.SurveyId %></td>
-                <td><%= response.RespondentId %></td>
-                <td><%= response.ResponseText %></td>
-                <td><%= response.CompletedDate %></td>
+                <th>Survey ID</th>
+                <th>Respondent ID</th>
+                <th>Completed Date</th>
+                <th>Contact Name</th>
+                <th>Email</th>
+                <th>Response Memo</th>
             </tr>
-        <% }); %>
+        </thead>
+        <tbody>
+            <% Object.keys(groupedResponses).forEach(respondentId => { 
+                const response = groupedResponses[respondentId]; %>
+                <tr>
+                    <td><%= response.SurveyId %></td>
+                    <td><%= respondentId %></td>
+                    <td><%= response.CompletedDate || "N/A" %></td>
+                    <td><%= response.ContactName || "N/A" %></td>
+                    <td><%= response.Email || "N/A" %></td>
+                    <td><%= response.ResponseMemo || "N/A" %></td>
+                </tr>
+            <% }); %>
+        </tbody>
     </table>
 </body>
 </html>
