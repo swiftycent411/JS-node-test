@@ -96,7 +96,6 @@ async function fetchSurveyResponses() {
     const fromDate = formatDate(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
     const toDate = formatDate(Date.now()); // Current date
 
-    // ✅ Correctly formatted filter XML
     const filterXML = `<FilterDefinition>
       <FilterGroup GroupOperator="AND">
         <FilterCriteria>
@@ -144,21 +143,43 @@ async function fetchSurveyResponses() {
       return [];
     }
 
-    const responses = Array.isArray(parsedXml.Responses.Response)
+    let responses = Array.isArray(parsedXml.Responses.Response)
       ? parsedXml.Responses.Response
       : [parsedXml.Responses.Response];
 
-    console.log("✅ Parsed Responses:", responses);
+    // ✅ Process each response and extract ResponseText or ResponseMemo
+    responses = responses.map((resp) => {
+      let responseText = "";
+
+      if (resp.ResponseText && resp.ResponseText !== "") {
+        responseText = resp.ResponseText;
+      } else if (resp.ResponseMemo && resp.ResponseMemo !== "") {
+        responseText = resp.ResponseMemo;
+      }
+
+      return {
+        ...resp,
+        ExtractedText: responseText, // Ensure there's always an extracted field
+      };
+    });
+
+    console.log("✅ Processed Responses:", JSON.stringify(responses, null, 2));
 
     writeData(RESPONSES_FILE, responses);
-    console.log("✅ Responses Fetched & Stored:", responses.length);
+    console.log(`✅ Responses Fetched & Stored: ${responses.length} responses`);
 
     return responses;
   } catch (error) {
-    console.error("❌ Error fetching responses:", error.message, "| Full Error:", error.response ? error.response.data : "No response data");
+    console.error(
+      "❌ Error fetching responses:",
+      error.message,
+      "| Full Error:",
+      error.response ? JSON.stringify(error.response.data, null, 2) : "No response data"
+    );
     return [];
   }
 }
+
 
 // ✅ Function to Get API Token for Submission API
 async function getAuthToken() {
@@ -183,7 +204,7 @@ async function pushDataToAPI(submission) {
 
     const payload = {
       surveyCode: SURVEY_CODE,
-      sendAlerts: false,
+      sendAlerts: true,
       name: "Contact Form Submission",
       notificationEmails: NOTIFICATION_EMAILS,
       UniqueRequestKey: "UniqueKey-" + new Date().toISOString(),
