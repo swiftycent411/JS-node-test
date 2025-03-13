@@ -9,7 +9,7 @@ body {
 
 /* Header Styles */
 header {
-    display: flex;
+    display: flow;
     align-items: center;
     background-color: #222;
     padding: 10px;
@@ -34,12 +34,12 @@ nav ul {
     padding: 0;
 }
 
-nav ul li {
+nav ul li, nav a {
     display: inline;
     margin: 0 15px;
 }
 
-nav ul li a {
+nav ul li a, nav a {
     color: white;
     text-decoration: none;
     font-weight: bold;
